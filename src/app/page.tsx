@@ -1,97 +1,108 @@
 'use client';
 import { useState } from 'react';
-import { Shield, Lock, Cpu, Activity, ArrowRight, Zap, CheckCircle2, AlertTriangle, Terminal, RefreshCw } from 'lucide-react';
+import { Shield, CheckCircle2, AlertTriangle, FileText, Users, BarChart3, BookOpen, ArrowRight, Sparkles, Send, Check, X } from 'lucide-react';
 
-export default function InkloomShieldApp() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'scanner' | 'document' | 'telemetry'>('dashboard');
+interface Violation {
+  type: string;
+  severity: 'high' | 'medium';
+  issue: string;
+  explanation: string;
+  suggestion: string;
+}
+
+interface ApprovalItem {
+  id: string;
+  title: string;
+  format: string;
+  creator: string;
+  status: 'Pending Review' | 'Changes Requested' | 'Approved';
+  date: string;
+  complianceScore: number;
+}
+
+export default function BrandGovernanceDashboard() {
+  const [activeTab, setActiveTab] = useState<'studio' | 'workflow' | 'guidelines' | 'insights'>('studio');
   
-  // Text Scanner State
-  const [inputText, setInputText] = useState('');
-  const [scanningText, setScanningText] = useState(false);
-  const [textResult, setTextResult] = useState<any>(null);
+  // Studio State
+  const [contentType, setContentType] = useState('Blog Post');
+  const [draftContent, setDraftContent] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<{
+    score: number;
+    violations: Violation[];
+    revisedContent: string;
+  } | null>(null);
 
-  // Document Tampering State
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [scanningFile, setScanningFile] = useState(false);
-  const [fileResult, setFileResult] = useState<any>(null);
+  // Workflow Queue State
+  const [queue, setQueue] = useState<ApprovalItem[]>([
+    { id: 'INC-104', title: 'Q3 Enterprise Product Launch Press Release', format: 'Press Release', creator: 'Ananya Sharma', status: 'Pending Review', date: '2026-10-27', complianceScore: 82 },
+    { id: 'INC-103', title: 'Social Media Campaign: AI Security Best Practices', format: 'Social Media', creator: 'Rahul Verma', status: 'Changes Requested', date: '2026-10-26', complianceScore: 64 },
+    { id: 'INC-102', title: 'Customer Success Case Study - Global Fintech', format: 'Case Study', creator: 'Priya Patel', status: 'Approved', date: '2026-10-25', complianceScore: 98 },
+  ]);
 
-  // Backend Connection State
-  const [backendUrl, setBackendUrl] = useState('http://localhost:8000');
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'connected' | 'error'>('idle');
-
-  // Handle Text Threat Analysis
-  const handleTextScan = async (e: React.FormEvent) => {
+  // Handle Guideline Audit
+  const runBrandAudit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
-    setScanningText(true);
-    setTextResult(null);
-
-    try {
-      const response = await fetch(`${backendUrl}/api/v1/scan-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: inputText }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTextResult(data);
-      } else {
-        throw new Error('Backend offline');
-      }
-    } catch {
-      // Intelligent fallback simulation if backend is local/unreachable
-      setTimeout(() => {
-        const hasThreat = inputText.toLowerCase().includes('ignore') || inputText.toLowerCase().includes('bypass');
-        setTextResult({
-          status: 'ANALYSIS_COMPLETE',
-          riskLevel: hasThreat ? 'CRITICAL' : 'SECURE',
-          threatsDetected: hasThreat ? ['Prompt Injection Vector', 'Instruction Override'] : [],
-          aiProbability: hasThreat ? 94.2 : 2.1,
-          recommendedAction: hasThreat ? 'BLOCK_AND_REPORT' : 'ALLOW_EXECUTION',
-        });
-        setScanningText(false);
-      }, 800);
-    } finally {
-      if (textResult) setScanningText(false);
-    }
-  };
-
-  // Handle Document Tampering Scan
-  const handleFileScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFile) return;
-    setScanningFile(true);
-    setFileResult(null);
+    if (!draftContent.trim()) return;
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
 
     setTimeout(() => {
-      setScanningFile(false);
-      setFileResult({
-        filename: selectedFile.name,
-        sizeBytes: selectedFile.size,
-        integrityScore: 99.98,
-        tamperDetected: false,
-        message: 'Cryptographic hash signature verified. No document tampering detected.',
-      });
-    }, 1000);
+      setIsAnalyzing(false);
+      const lower = draftContent.toLowerCase();
+      const violations: Violation[] = [];
+
+      if (lower.includes('guaranteed') || lower.includes('best in the world') || lower.includes('100% safe')) {
+        violations.push({
+          type: 'Unsupported Promotional Claim',
+          severity: 'high',
+          issue: 'Unsubstantiated superlative or absolute guarantee used.',
+          explanation: 'Brand guidelines prohibit absolute guarantees or unverified superlatives ("best in the world") without legal or empirical citation.',
+          suggestion: 'Replace with verified metrics or qualified phrasing like "industry-leading architecture".'
+        });
+      }
+
+      if (lower.includes('cheap') || lower.includes('budget') || lower.includes('hack')) {
+        violations.push({
+          type: 'Terminology & Tone Mismatch',
+          severity: 'medium',
+          issue: 'Informal or off-brand terminology detected.',
+          explanation: 'Enterprise communication standards require professional, precise vocabulary rather than colloquial jargon.',
+          suggestion: 'Use "cost-effective", "optimized", or "methodology" instead.'
+        });
+      }
+
+      if (violations.length === 0) {
+        violations.push({
+          type: 'Minor Formatting',
+          severity: 'medium',
+          issue: 'Brand terminology capitalization check.',
+          explanation: 'Ensure "Inkloom Shield" is always written in proper title case.',
+          suggestion: 'Verify capitalization in secondary paragraphs.'
+        });
+      }
+
+      const score = violations.length === 0 ? 100 : violations.some(v => v.severity === 'high') ? 72 : 88;
+      
+      let revised = draftContent;
+      if (lower.includes('guaranteed')) revised = revised.replace(/guaranteed/gi, 'verified');
+      if (lower.includes('best in the world')) revised = revised.replace(/best in the world/gi, 'highly scalable');
+      if (lower.includes('cheap')) revised = revised.replace(/cheap/gi, 'cost-effective');
+
+      setAnalysisResult({ score, violations, revisedContent: revised });
+    }, 1200);
   };
 
-  const testBackend = async () => {
-    setConnectionStatus('testing');
-    try {
-      const res = await fetch(`${backendUrl}/health`);
-      if (res.ok) setConnectionStatus('connected');
-      else setConnectionStatus('error');
-    } catch {
-      setConnectionStatus('connected'); // Simulated success for preview
-    }
+  const updateStatus = (id: string, newStatus: 'Approved' | 'Changes Requested') => {
+    setQueue(queue.map(item => item.id === id ? { ...item, status: newStatus } : item));
   };
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 font-sans selection:bg-blue-500 selection:text-white">
       
-      {/* Navbar */}
-      <nav className="border-b border-slate-800/80 bg-[#030712]/90 backdrop-blur sticky top-0 z-50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+      {/* Top Navigation */}
+      <nav className="border-b border-slate-800 bg-[#030712]/90 backdrop-blur sticky top-0 z-50 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <Shield className="h-5 w-5 text-white" />
@@ -100,270 +111,284 @@ export default function InkloomShieldApp() {
               <h1 className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 Inkloom Shield
               </h1>
-              <p className="text-[10px] text-blue-400 font-mono">ENTERPRISE SECURITY CORE</p>
+              <p className="text-[10px] text-blue-400 font-mono">INTELLIGENT BRAND GOVERNANCE</p>
             </div>
           </div>
 
           {/* Navigation Tabs */}
           <div className="flex bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 text-xs font-medium">
             <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 rounded-lg transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setActiveTab('studio')}
+              className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${activeTab === 'studio' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
-              Overview
+              <FileText className="h-3.5 w-3.5" /> Content Studio
             </button>
             <button
-              onClick={() => setActiveTab('scanner')}
-              className={`px-4 py-2 rounded-lg transition ${activeTab === 'scanner' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setActiveTab('workflow')}
+              className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${activeTab === 'workflow' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
-              Prompt Analyzer
+              <Users className="h-3.5 w-3.5" /> Approvals & Queue
             </button>
             <button
-              onClick={() => setActiveTab('document')}
-              className={`px-4 py-2 rounded-lg transition ${activeTab === 'document' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setActiveTab('guidelines')}
+              className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${activeTab === 'guidelines' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
-              File Tamper Guard
+              <BookOpen className="h-3.5 w-3.5" /> Brand Rulebook
             </button>
             <button
-              onClick={() => setActiveTab('telemetry')}
-              className={`px-4 py-2 rounded-lg transition ${activeTab === 'telemetry' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setActiveTab('insights')}
+              className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${activeTab === 'insights' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
-              Telemetry
+              <BarChart3 className="h-3.5 w-3.5" /> Insights & Analytics
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
+      {/* Main Container */}
       <main className="max-w-7xl mx-auto p-6 md:p-10 space-y-8">
         
-        {activeTab === 'dashboard' && (
+        {/* TAB 1: CONTENT STUDIO */}
+        {activeTab === 'studio' && (
           <div className="space-y-8 animate-fadeIn">
-            {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900 border border-blue-500/20 p-8 md:p-12">
-              <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-96 h-96 bg-blue-600/15 rounded-full blur-[100px] pointer-events-none"></div>
-              
-              <div className="max-w-2xl space-y-4 relative z-10">
+            {/* Header info */}
+            <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900 border border-blue-500/20 p-8 rounded-2xl relative overflow-hidden">
+              <div className="max-w-2xl space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-mono">
-                  <Zap className="h-3.5 w-3.5" /> Real-time Hybrid Neural Protection Active
+                  <Sparkles className="h-3.5 w-3.5" /> Pre-Publication Brand Guard Active
                 </div>
-                <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
-                  Autonomous Security for <br />
-                  <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">
-                    Critical Workflows
-                  </span>
-                </h2>
-                <p className="text-slate-400 text-sm md:text-base leading-relaxed">
-                  Defend institutional assets against advanced prompt injection, unauthorized document manipulation, and data leakage using high-performance FastAPI & Next.js architecture.
+                <h2 className="text-2xl md:text-3xl font-bold text-white">Intelligent Content Review & Correction</h2>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Submit drafts, marketing copy, or press releases. The governance engine checks tone, terminology, promotional claims, and consistency against official brand guidelines before publication.
                 </p>
-                <div className="pt-4 flex gap-4">
-                  <button
-                    onClick={() => setActiveTab('scanner')}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/30 flex items-center gap-2"
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Input Form */}
+              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Draft Submission</h3>
+                  <select
+                    value={contentType}
+                    onChange={(e) => setContentType(e.target.value)}
+                    className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-blue-500"
                   >
-                    Test Prompt Scanner <ArrowRight className="h-4 w-4" />
-                  </button>
+                    <option>Blog Post</option>
+                    <option>Social Media</option>
+                    <option>Press Release</option>
+                    <option>Email Newsletter</option>
+                  </select>
+                </div>
+
+                <form onSubmit={runBrandAudit} className="space-y-4">
+                  <textarea
+                    rows={8}
+                    value={draftContent}
+                    onChange={(e) => setDraftContent(e.target.value)}
+                    placeholder="Paste your draft content here to verify tone, claims, and terminology compliance..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500 leading-relaxed"
+                  ></textarea>
                   <button
-                    onClick={() => setActiveTab('telemetry')}
-                    className="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 font-medium px-6 py-3 rounded-xl text-sm transition"
+                    type="submit"
+                    disabled={isAnalyzing || !draftContent.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
                   >
-                    View Node Telemetry
+                    {isAnalyzing ? 'Auditing Against Brand Guidelines...' : 'Run Brand Compliance Audit'} <ArrowRight className="h-4 w-4" />
                   </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Bento Grid Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl backdrop-blur">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-xs text-slate-400 font-mono uppercase">Threat Mitigation</span>
-                  <Shield className="h-5 w-5 text-blue-400" />
-                </div>
-                <p className="text-3xl font-bold text-white font-mono">99.98%</p>
-                <p className="text-xs text-emerald-400 mt-1">↑ 0.14% increase in filtering efficiency</p>
+                </form>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl backdrop-blur">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-xs text-slate-400 font-mono uppercase">Active Neural Nodes</span>
-                  <Cpu className="h-5 w-5 text-indigo-400" />
-                </div>
-                <p className="text-3xl font-bold text-white font-mono">24 / 24</p>
-                <p className="text-xs text-blue-400 mt-1">All regions fully synchronized</p>
-              </div>
-
-              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl backdrop-blur">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-xs text-slate-400 font-mono uppercase">Average Latency</span>
-                  <Activity className="h-5 w-5 text-cyan-400" />
-                </div>
-                <p className="text-3xl font-bold text-white font-mono">42ms</p>
-                <p className="text-xs text-emerald-400 mt-1">Optimal edge response time</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'scanner' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn">
-            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-4">
-              <h3 className="text-lg font-bold text-white">Neural Prompt Injection Analyzer</h3>
-              <p className="text-xs text-slate-400">Test text payloads against advanced heuristic filters to detect hidden instruction overrides or prompt injections.</p>
-              
-              <form onSubmit={handleTextScan} className="space-y-4">
-                <textarea
-                  rows={6}
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Enter prompt or query string to inspect..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
-                ></textarea>
-                <button
-                  type="submit"
-                  disabled={scanningText || !inputText.trim()}
-                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/20"
-                >
-                  {scanningText ? 'Running Neural Inspection...' : 'Analyze Prompt Vector'}
-                </button>
-              </form>
-            </div>
-
-            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white mb-2">Analysis Results</h3>
-                <p className="text-xs text-slate-400 mb-6">Real-time inspection output from the security engine.</p>
-              </div>
-
-              {textResult ? (
-                <div className="bg-slate-950 border border-slate-800 p-5 rounded-xl font-mono text-xs space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Status:</span>
-                    <span className="text-emerald-400 font-bold">{textResult.status}</span>
+              {/* Analysis & Explainable Corrections Result */}
+              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Compliance Audit Report</h3>
+                    {analysisResult && (
+                      <span className={`text-xs font-mono px-3 py-1 rounded-full font-bold ${analysisResult.score > 80 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                        Brand Score: {analysisResult.score}/100
+                      </span>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Risk Assessment:</span>
-                    <span className={`px-2 py-0.5 rounded ${textResult.riskLevel === 'CRITICAL' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
-                      {textResult.riskLevel}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">AI Synthesized Probability:</span>
-                    <span className="text-white font-bold">{textResult.aiProbability}%</span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-800">
-                    <span className="text-slate-400 block mb-1">Detected Threat Signatures:</span>
-                    <div className="text-rose-400 font-semibold">
-                      {textResult.threatsDetected.length > 0 ? textResult.threatsDetected.join(', ') : 'None (Secure Payload)'}
+
+                  {analysisResult ? (
+                    <div className="space-y-4 text-xs">
+                      {analysisResult.violations.map((v, idx) => (
+                        <div key={idx} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-rose-400 flex items-center gap-1.5">
+                              <AlertTriangle className="h-3.5 w-3.5" /> {v.type}
+                            </span>
+                            <span className="uppercase font-mono text-[10px] bg-slate-900 px-2 py-0.5 rounded text-slate-400 border border-slate-800">
+                              {v.severity} priority
+                            </span>
+                          </div>
+                          <p className="text-slate-300"><strong>Issue:</strong> {v.issue}</p>
+                          <p className="text-slate-400 italic"><strong>Why:</strong> {v.explanation}</p>
+                          <div className="pt-2 border-t border-slate-900 text-emerald-400 font-mono">
+                            <strong>Suggested Correction:</strong> {v.suggestion}
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="bg-slate-950 border border-blue-500/30 p-4 rounded-xl space-y-2">
+                        <span className="font-bold text-blue-400 block font-mono">Optimized Brand-Compliant Draft:</span>
+                        <p className="text-slate-300 font-mono bg-slate-900 p-3 rounded-lg leading-relaxed">{analysisResult.revisedContent}</p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-20 text-slate-500 font-mono text-xs">
+                      Awaiting draft submission. Enter text in the studio and run an audit to view explainable corrections.
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-12 text-slate-500 text-xs font-mono">
-                  Awaiting payload input for analysis...
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'document' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn">
-            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-4">
-              <h3 className="text-lg font-bold text-white">Document Tampering & Integrity Guard</h3>
-              <p className="text-xs text-slate-400">Upload documents or files to verify cryptographic signatures and structural integrity against unauthorized alterations.</p>
-              
-              <form onSubmit={handleFileScan} className="space-y-4">
-                <input
-                  type="file"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
-                />
-                <button
-                  type="submit"
-                  disabled={scanningFile || !selectedFile}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium py-3 rounded-xl text-sm transition shadow-lg shadow-indigo-600/20"
-                >
-                  {scanningFile ? 'Verifying File Hashes...' : 'Scan Document Integrity'}
-                </button>
-              </form>
-            </div>
-
-            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white mb-2">Verification Report</h3>
-                <p className="text-xs text-slate-400 mb-6">Cryptographic integrity audit results.</p>
+                {analysisResult && (
+                  <button
+                    onClick={() => {
+                      setDraftContent(analysisResult.revisedContent);
+                      alert('Optimized brand-compliant text applied to editor!');
+                    }}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 rounded-xl text-xs transition font-mono border border-slate-700"
+                  >
+                    Apply Approved Corrections to Editor
+                  </button>
+                )}
               </div>
-
-              {fileResult ? (
-                <div className="bg-slate-950 border border-slate-800 p-5 rounded-xl font-mono text-xs space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Filename:</span>
-                    <span className="text-white font-bold">{fileResult.filename}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">File Size:</span>
-                    <span className="text-slate-300">{fileResult.sizeBytes} bytes</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Integrity Score:</span>
-                    <span className="text-emerald-400 font-bold">{fileResult.integrityScore}%</span>
-                  </div>
-                  <p className="text-slate-300 pt-2 border-t border-slate-800">{fileResult.message}</p>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-slate-500 text-xs font-mono">
-                  Select a document file to run integrity checks.
-                </div>
-              )}
             </div>
           </div>
         )}
 
-        {activeTab === 'telemetry' && (
+        {/* TAB 2: WORKFLOW & APPROVAL QUEUE */}
+        {activeTab === 'workflow' && (
           <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-6 animate-fadeIn">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-bold text-white">FastAPI Backend Telemetry & Gateway</h3>
-                <p className="text-xs text-slate-400">Configure and test connection to your backend engine.</p>
+                <h3 className="text-lg font-bold text-white">Review & Approval Workflow</h3>
+                <p className="text-xs text-slate-400">Collaborative queue for creators, managers, and authorized reviewers to track status and approve publications.</p>
               </div>
-              <div className="flex gap-2 w-full md:w-auto">
-                <input
-                  type="text"
-                  value={backendUrl}
-                  onChange={(e) => setBackendUrl(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={testBackend}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap"
-                >
-                  {connectionStatus === 'testing' ? 'Testing...' : 'Test Endpoint'}
-                </button>
+              <span className="text-xs font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-lg">
+                3 Active Submissions
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Content Title</th>
+                    <th className="p-4">Format</th>
+                    <th className="p-4">Creator</th>
+                    <th className="p-4">Compliance</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Review Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800 text-slate-300">
+                  {queue.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-950/50 transition">
+                      <td className="p-4 font-bold text-slate-400">{item.id}</td>
+                      <td className="p-4 font-semibold text-white">{item.title}</td>
+                      <td className="p-4 text-slate-400">{item.format}</td>
+                      <td className="p-4 text-slate-300">{item.creator}</td>
+                      <td className="p-4">
+                        <span className="text-emerald-400 font-bold">{item.complianceScore}%</span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${
+                          item.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          item.status === 'Changes Requested' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                          'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right space-x-2">
+                        <button
+                          onClick={() => updateStatus(item.id, 'Approved')}
+                          className="bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-lg transition"
+                          title="Approve Content"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => updateStatus(item.id, 'Changes Requested')}
+                          className="bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 border border-rose-500/30 px-3 py-1 rounded-lg transition"
+                          title="Request Changes"
+                        >
+                          Revise
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: BRAND RULEBOOK */}
+        {activeTab === 'guidelines' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
+            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-3">
+              <span className="text-xs uppercase font-mono text-blue-400 font-semibold">Rule Category 01</span>
+              <h3 className="text-lg font-bold text-white">Tone & Voice Profile</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Professional, authoritative yet approachable. Avoid overly casual slang or aggressive sales superlatives.
+              </p>
+              <div className="pt-2 text-xs font-mono text-emerald-400">✓ Enforced across all blog & social copy</div>
+            </div>
+
+            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-3">
+              <span className="text-xs uppercase font-mono text-indigo-400 font-semibold">Rule Category 02</span>
+              <h3 className="text-lg font-bold text-white">Claim Verification</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                All performance metrics and security claims must be backed by verified telemetry data or official audit reports.
+              </p>
+              <div className="pt-2 text-xs font-mono text-emerald-400">✓ Prevents unverified promotional statements</div>
+            </div>
+
+            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-3">
+              <span className="text-xs uppercase font-mono text-cyan-400 font-semibold">Rule Category 03</span>
+              <h3 className="text-lg font-bold text-white">Terminology Glossary</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Mandatory product naming conventions: "Inkloom Shield", "Neural Core", "Team tutu". Prohibits outdated terms.
+              </p>
+              <div className="pt-2 text-xs font-mono text-emerald-400">✓ Automated spelling & naming filter</div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: INSIGHTS & ANALYTICS */}
+        {activeTab === 'insights' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl">
+                <p className="text-xs text-slate-400 uppercase font-mono">Overall Brand Compliance</p>
+                <h3 className="text-3xl font-bold text-white mt-2">94.6%</h3>
+                <p className="text-xs text-emerald-400 mt-1">↑ 3.2% from last month</p>
+              </div>
+              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl">
+                <p className="text-xs text-slate-400 uppercase font-mono">Most Frequent Violation</p>
+                <h3 className="text-xl font-bold text-amber-400 mt-2">Superlative Claims</h3>
+                <p className="text-xs text-slate-400 mt-1">38% of total flagged issues</p>
+              </div>
+              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl">
+                <p className="text-xs text-slate-400 uppercase font-mono">Avg Review Turnaround</p>
+                <h3 className="text-3xl font-bold text-white mt-2">14 mins</h3>
+                <p className="text-xs text-emerald-400 mt-1">↓ 8 mins faster than baseline</p>
+              </div>
+              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl">
+                <p className="text-xs text-slate-400 uppercase font-mono">Active Contributors</p>
+                <h3 className="text-3xl font-bold text-white mt-2">12 Members</h3>
+                <p className="text-xs text-blue-400 mt-1">Team tutu workspace</p>
               </div>
             </div>
 
-            {connectionStatus !== 'idle' && (
-              <div className={`p-4 rounded-xl border text-xs font-mono ${connectionStatus === 'connected' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
-                {connectionStatus === 'connected' ? '✓ Backend Gateway connection established successfully.' : '⚠ Connection failed. Ensure backend service is active.'}
-              </div>
-            )}
-
-            <div className="space-y-3 font-mono text-xs">
-              <div className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <span className="text-emerald-400">▶</span>
-                  <span className="text-slate-300">Neural signature model weights loaded (v2.4 core).</span>
-                </div>
-                <span className="text-slate-500">Live</span>
-              </div>
-              <div className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <span className="text-emerald-400">▶</span>
-                  <span className="text-slate-300">Distributed telemetry listening on port 8000.</span>
-                </div>
-                <span className="text-slate-500">Active</span>
-              </div>
+            <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl space-y-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Guideline Clarity & Mistakes Insight</h3>
+              <p className="text-xs text-slate-400">Analytics indicate that creators frequently struggle with promotional claim boundaries in press releases. Consider updating guideline documentation in the Brand Rulebook.</p>
             </div>
           </div>
         )}
@@ -372,7 +397,7 @@ export default function InkloomShieldApp() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-8 px-6 text-center text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} Inkloom Shield. Developed by Team tutu.</p>
+        <p>© {new Date().getFullYear()} Inkloom Shield. Intelligent Brand Governance Platform • Developed by Team tutu.</p>
       </footer>
 
     </div>
