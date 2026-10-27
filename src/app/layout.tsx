@@ -2,8 +2,8 @@ import './globals.css'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Inkloom Shield | Enterprise AI Security Core',
-  description: 'Next-Generation Content & Document Security Platform by Team tutu',
+  title: 'Inkloom Shield | Intelligent Brand Governance Platform',
+  description: 'Automated content compliance, guideline verification, and multi-tier approval workflows.',
 }
 
 export default function RootLayout({
